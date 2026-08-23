@@ -1,0 +1,12 @@
+.env
+env/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+static/uploads/*
+!static/uploads/.gitkeep
+*.db
+.vscode/
+.idea/

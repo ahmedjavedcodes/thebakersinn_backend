@@ -1,0 +1,2249 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "The Bakers Inn API",
+    "description": "REST API for The Bakers Inn bakery \u2014 public storefront reads and admin panel management.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/categories/with-products": {
+      "get": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "All active categories with their available products nested",
+        "description": "The primary storefront call: every active category, ordered by display_order, with its available products nested inline.",
+        "operationId": "list_categories_with_products_api_v1_categories_with_products_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryWithProducts"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories With Products Api V1 Categories With Products Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "List active categories",
+        "description": "Active categories ordered by display_order, for the storefront category strip.",
+        "operationId": "list_categories_api_v1_categories_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories Api V1 Categories Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories/{slug}": {
+      "get": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "Get one active category by slug",
+        "operationId": "get_category_api_v1_categories__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "tags": [
+          "products"
+        ],
+        "summary": "List available products, paginated and filterable",
+        "operationId": "list_products_api_v1_products_get",
+        "parameters": [
+          {
+            "name": "category_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by category slug.",
+              "examples": [
+                "cakes"
+              ],
+              "title": "Category Slug"
+            },
+            "description": "Filter by category slug."
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive name search.",
+              "examples": [
+                "chocolate"
+              ],
+              "title": "Search"
+            },
+            "description": "Case-insensitive name search."
+          },
+          {
+            "name": "is_featured",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to featured products only.",
+              "title": "Is Featured"
+            },
+            "description": "Filter to featured products only."
+          },
+          {
+            "name": "min_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Minimum base_price.",
+              "title": "Min Price"
+            },
+            "description": "Minimum base_price."
+          },
+          {
+            "name": "max_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum base_price.",
+              "title": "Max Price"
+            },
+            "description": "Maximum base_price."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "display_order",
+                "price",
+                "name",
+                "created_at"
+              ],
+              "type": "string",
+              "description": "Sort field.",
+              "default": "display_order",
+              "title": "Sort"
+            },
+            "description": "Sort field."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "1-indexed page number.",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-indexed page number."
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page.",
+              "default": 20,
+              "title": "Size"
+            },
+            "description": "Items per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedProducts"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/{slug}": {
+      "get": {
+        "tags": [
+          "products"
+        ],
+        "summary": "Get one available product with variants and images",
+        "operationId": "get_product_api_v1_products__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in with the admin email and password",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Exchange a refresh token for a new token pair",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/categories": {
+      "post": {
+        "tags": [
+          "admin:categories"
+        ],
+        "summary": "Create a category (icon_url required)",
+        "operationId": "create_category_api_v1_admin_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/categories/reorder": {
+      "patch": {
+        "tags": [
+          "admin:categories"
+        ],
+        "summary": "Bulk reorder categories",
+        "operationId": "reorder_categories_api_v1_admin_categories_reorder_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{category_id}": {
+      "patch": {
+        "tags": [
+          "admin:categories"
+        ],
+        "summary": "Partially update a category",
+        "operationId": "update_category_api_v1_admin_categories__category_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin:categories"
+        ],
+        "summary": "Delete a category",
+        "operationId": "delete_category_api_v1_admin_categories__category_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/products": {
+      "post": {
+        "tags": [
+          "admin:products"
+        ],
+        "summary": "Create a product under a category",
+        "operationId": "create_product_api_v1_admin_products_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/products/{product_id}/availability": {
+      "patch": {
+        "tags": [
+          "admin:products"
+        ],
+        "summary": "Fast in/out-of-stock toggle",
+        "operationId": "update_product_availability_api_v1_admin_products__product_id__availability_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Product Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/products/{product_id}": {
+      "patch": {
+        "tags": [
+          "admin:products"
+        ],
+        "summary": "Partially update a product",
+        "operationId": "update_product_api_v1_admin_products__product_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Product Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin:products"
+        ],
+        "summary": "Hard delete a product",
+        "operationId": "delete_product_api_v1_admin_products__product_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Product Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/uploads/image": {
+      "post": {
+        "tags": [
+          "admin:uploads"
+        ],
+        "summary": "Upload a category icon or product image",
+        "operationId": "upload_image_api_v1_admin_uploads_image_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_image_api_v1_admin_uploads_image_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness check",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AvailabilityUpdate": {
+        "properties": {
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "New availability state.",
+            "examples": [
+              false
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_available"
+        ],
+        "title": "AvailabilityUpdate"
+      },
+      "Body_upload_image_api_v1_admin_uploads_image_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_image_api_v1_admin_uploads_image_post"
+      },
+      "CategoryCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Display name of the category.",
+            "examples": [
+              "Cakes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional longer description shown on the storefront category page.",
+            "examples": [
+              "Our signature layered cakes, made fresh daily."
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order for the storefront category strip. Lower shows first.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "icon_url": {
+            "type": "string",
+            "title": "Icon Url",
+            "description": "URL of the category icon. Required on create \u2014 the admin workflow is icon-first, a category should never be created without one.",
+            "examples": [
+              "https://cdn.thebakersinn.com/icons/cakes.png"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "icon_url"
+        ],
+        "title": "CategoryCreate"
+      },
+      "CategoryRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Display name of the category.",
+            "examples": [
+              "Cakes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional longer description shown on the storefront category page.",
+            "examples": [
+              "Our signature layered cakes, made fresh daily."
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order for the storefront category strip. Lower shows first.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Category ID.",
+            "examples": [
+              1
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "URL-safe slug, generated from name.",
+            "examples": [
+              "cakes"
+            ]
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "URL of the category icon.",
+            "examples": [
+              "https://cdn.thebakersinn.com/icons/cakes.png"
+            ]
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Whether this category is visible on the storefront.",
+            "examples": [
+              true
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp (UTC)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "slug",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CategoryRead"
+      },
+      "CategoryReorderItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Category ID to reposition.",
+            "examples": [
+              3
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "New sort position.",
+            "examples": [
+              2
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_order"
+        ],
+        "title": "CategoryReorderItem"
+      },
+      "CategoryReorderRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryReorderItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Bulk list of category IDs with their new display_order.",
+            "examples": [
+              [
+                {
+                  "display_order": 0,
+                  "id": 3
+                },
+                {
+                  "display_order": 1,
+                  "id": 1
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CategoryReorderRequest"
+      },
+      "CategoryUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "New display name.",
+            "examples": [
+              "Cakes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "New description.",
+            "examples": [
+              "Our signature layered cakes."
+            ]
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "New icon URL.",
+            "examples": [
+              "https://cdn.thebakersinn.com/icons/cakes.png"
+            ]
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order",
+            "description": "New sort position.",
+            "examples": [
+              1
+            ]
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "description": "Set false to hide from the public storefront without deleting.",
+            "examples": [
+              true
+            ]
+          }
+        },
+        "type": "object",
+        "title": "CategoryUpdate",
+        "description": "All fields optional for PATCH."
+      },
+      "CategoryWithProducts": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Display name of the category.",
+            "examples": [
+              "Cakes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional longer description shown on the storefront category page.",
+            "examples": [
+              "Our signature layered cakes, made fresh daily."
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order for the storefront category strip. Lower shows first.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Category ID.",
+            "examples": [
+              1
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "URL-safe slug, generated from name.",
+            "examples": [
+              "cakes"
+            ]
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "URL of the category icon.",
+            "examples": [
+              "https://cdn.thebakersinn.com/icons/cakes.png"
+            ]
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Whether this category is visible on the storefront.",
+            "examples": [
+              true
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp (UTC)."
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductRead"
+            },
+            "type": "array",
+            "title": "Products",
+            "description": "Available products in this category, ordered by display_order."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "slug",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CategoryWithProducts",
+        "description": "GET /categories/with-products \u2014 the primary storefront call."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Admin account email.",
+            "examples": [
+              "owner@thebakersinn.com"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Password",
+            "description": "Admin account password.",
+            "examples": [
+              "hunter2"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "PaginatedProducts": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Products on this page."
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching products across all pages.",
+            "examples": [
+              57
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Current page number, 1-indexed.",
+            "examples": [
+              1
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Page size.",
+            "examples": [
+              20
+            ]
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "description": "Total number of pages.",
+            "examples": [
+              3
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PaginatedProducts"
+      },
+      "ProductCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Product name.",
+            "examples": [
+              "Chocolate Fudge Cake"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Longer description shown on the product detail page.",
+            "examples": [
+              "Rich chocolate sponge layered with fudge frosting."
+            ]
+          },
+          "base_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Price",
+            "description": "Price in the product's currency. Required unless is_custom_order is true. If the product has variants, this is the 'from' price.",
+            "examples": [
+              "2450.00"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "description": "ISO 4217 currency code.",
+            "default": "PKR",
+            "examples": [
+              "PKR"
+            ]
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ProductImage"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "Ordered image list. Exactly one entry must have is_cover: true (unless empty)."
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "In stock / orderable.",
+            "default": true,
+            "examples": [
+              true
+            ]
+          },
+          "is_featured": {
+            "type": "boolean",
+            "title": "Is Featured",
+            "description": "Highlighted on the storefront.",
+            "default": false,
+            "examples": [
+              false
+            ]
+          },
+          "is_custom_order": {
+            "type": "boolean",
+            "title": "Is Custom Order",
+            "description": "True for design-to-order cakes with no fixed price.",
+            "default": false,
+            "examples": [
+              false
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order within its category.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id",
+            "description": "Category this product belongs to.",
+            "examples": [
+              1
+            ]
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ProductVariantCreate"
+            },
+            "type": "array",
+            "title": "Variants",
+            "description": "Optional initial size variants. Leave empty to price by base_price alone."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "category_id"
+        ],
+        "title": "ProductCreate"
+      },
+      "ProductDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Product ID.",
+            "examples": [
+              42
+            ]
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id",
+            "description": "Owning category ID.",
+            "examples": [
+              1
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Product name.",
+            "examples": [
+              "Chocolate Fudge Cake"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "URL-safe slug, unique across all products.",
+            "examples": [
+              "chocolate-fudge-cake"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Product description."
+          },
+          "base_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Price",
+            "description": "Price, or the 'from' price if this product has variants.",
+            "examples": [
+              "2450.00"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "ISO 4217 currency code.",
+            "examples": [
+              "PKR"
+            ]
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ProductImage"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "Ordered image list."
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "In stock / orderable.",
+            "examples": [
+              true
+            ]
+          },
+          "is_featured": {
+            "type": "boolean",
+            "title": "Is Featured",
+            "description": "Highlighted on the storefront.",
+            "examples": [
+              false
+            ]
+          },
+          "is_custom_order": {
+            "type": "boolean",
+            "title": "Is Custom Order",
+            "description": "Design-to-order flag.",
+            "examples": [
+              false
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order within its category.",
+            "examples": [
+              0
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp (UTC)."
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ProductVariantRead"
+            },
+            "type": "array",
+            "title": "Variants",
+            "description": "Size variants. Empty means base_price is the only price."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category_id",
+          "name",
+          "slug",
+          "currency",
+          "images",
+          "is_available",
+          "is_featured",
+          "is_custom_order",
+          "display_order",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProductDetail",
+        "description": "GET /products/{slug} \u2014 adds variants."
+      },
+      "ProductImage": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Image URL.",
+            "examples": [
+              "https://cdn.thebakersinn.com/products/choc-1.jpg"
+            ]
+          },
+          "alt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt",
+            "description": "Alt text for accessibility.",
+            "examples": [
+              "Chocolate Fudge Cake, side view"
+            ]
+          },
+          "is_cover": {
+            "type": "boolean",
+            "title": "Is Cover",
+            "description": "True for the single cover image shown in listings.",
+            "default": false,
+            "examples": [
+              true
+            ]
+          },
+          "sort": {
+            "type": "integer",
+            "title": "Sort",
+            "description": "Display order among this product's images.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "ProductImage"
+      },
+      "ProductRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Product ID.",
+            "examples": [
+              42
+            ]
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id",
+            "description": "Owning category ID.",
+            "examples": [
+              1
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Product name.",
+            "examples": [
+              "Chocolate Fudge Cake"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "URL-safe slug, unique across all products.",
+            "examples": [
+              "chocolate-fudge-cake"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Product description."
+          },
+          "base_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Price",
+            "description": "Price, or the 'from' price if this product has variants.",
+            "examples": [
+              "2450.00"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "ISO 4217 currency code.",
+            "examples": [
+              "PKR"
+            ]
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ProductImage"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "Ordered image list."
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "In stock / orderable.",
+            "examples": [
+              true
+            ]
+          },
+          "is_featured": {
+            "type": "boolean",
+            "title": "Is Featured",
+            "description": "Highlighted on the storefront.",
+            "examples": [
+              false
+            ]
+          },
+          "is_custom_order": {
+            "type": "boolean",
+            "title": "Is Custom Order",
+            "description": "Design-to-order flag.",
+            "examples": [
+              false
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order within its category.",
+            "examples": [
+              0
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp (UTC)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category_id",
+          "name",
+          "slug",
+          "currency",
+          "images",
+          "is_available",
+          "is_featured",
+          "is_custom_order",
+          "display_order",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProductRead",
+        "description": "Used in list responses and nested under CategoryWithProducts."
+      },
+      "ProductUpdate": {
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id",
+            "description": "Move to a different category.",
+            "examples": [
+              2
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "New name.",
+            "examples": [
+              "Chocolate Fudge Cake"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "New description.",
+            "examples": [
+              "Updated description."
+            ]
+          },
+          "base_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Price",
+            "description": "New base price.",
+            "examples": [
+              "2550.00"
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "New currency code.",
+            "examples": [
+              "PKR"
+            ]
+          },
+          "images": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProductImage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images",
+            "description": "Replace the full images array. Exactly one is_cover: true required."
+          },
+          "is_available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Available",
+            "description": "In stock / orderable.",
+            "examples": [
+              true
+            ]
+          },
+          "is_featured": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Featured",
+            "description": "Highlighted on the storefront.",
+            "examples": [
+              false
+            ]
+          },
+          "is_custom_order": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Custom Order",
+            "description": "Design-to-order flag.",
+            "examples": [
+              false
+            ]
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order",
+            "description": "New sort position.",
+            "examples": [
+              1
+            ]
+          },
+          "variants": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProductVariantCreate"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variants",
+            "description": "Replace the full variants array."
+          }
+        },
+        "type": "object",
+        "title": "ProductUpdate",
+        "description": "All fields optional for PATCH. images/variants are whole-array replacements."
+      },
+      "ProductVariantCreate": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Label",
+            "description": "Free-text size label, e.g. a weight, so non-weight sizing needs no schema change.",
+            "examples": [
+              "2 lb"
+            ]
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              }
+            ],
+            "title": "Price",
+            "description": "Price for this size, in the product's currency.",
+            "examples": [
+              "3450.00"
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order among this product's variants.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "Whether this size is currently orderable.",
+            "default": true,
+            "examples": [
+              true
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "price"
+        ],
+        "title": "ProductVariantCreate"
+      },
+      "ProductVariantRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Variant ID.",
+            "examples": [
+              10
+            ]
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Free-text size label.",
+            "examples": [
+              "2 lb"
+            ]
+          },
+          "price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price",
+            "description": "Price for this size.",
+            "examples": [
+              "3450.00"
+            ]
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order",
+            "description": "Sort order among variants.",
+            "examples": [
+              0
+            ]
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "description": "Whether this size is currently orderable.",
+            "examples": [
+              true
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "price",
+          "display_order",
+          "is_available"
+        ],
+        "title": "ProductVariantRead"
+      },
+      "RefreshRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "A previously issued refresh token."
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshRequest"
+      },
+      "TokenPair": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "Short-lived JWT for Authorization: Bearer."
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Long-lived JWT used to obtain a new access token."
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Always 'bearer'.",
+            "default": "bearer",
+            "examples": [
+              "bearer"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenPair"
+      },
+      "UploadResponse": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Public URL of the uploaded image.",
+            "examples": [
+              "/static/uploads/2026/08/abc123.jpg"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "UploadResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
