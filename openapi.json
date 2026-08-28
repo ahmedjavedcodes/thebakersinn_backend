@@ -408,6 +408,145 @@
         }
       }
     },
+    "/api/v1/auth/join-requests": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request access to the admin panel (an owner must approve)",
+        "operationId": "request_to_join_api_v1_auth_join_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Request To Join Api V1 Auth Join Requests Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/invitations/{token}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Look up a pending invitation by its token",
+        "operationId": "get_invitation_api_v1_auth_invitations__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPublicInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/invitations/{token}/accept": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Accept an invitation: set a password, get logged in",
+        "operationId": "accept_invitation_api_v1_auth_invitations__token__accept_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationAccept"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/categories": {
       "post": {
         "tags": [
@@ -553,7 +692,7 @@
         "tags": [
           "admin:categories"
         ],
-        "summary": "Delete a category",
+        "summary": "Delete a category (owner only)",
         "operationId": "delete_category_api_v1_admin_categories__category_id__delete",
         "security": [
           {
@@ -751,7 +890,7 @@
         "tags": [
           "admin:products"
         ],
-        "summary": "Hard delete a product",
+        "summary": "Hard delete a product (owner only)",
         "operationId": "delete_product_api_v1_admin_products__product_id__delete",
         "security": [
           {
@@ -830,6 +969,298 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "admin:users"
+        ],
+        "summary": "List all admin users and their roles",
+        "operationId": "list_users_api_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Api V1 Admin Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin:users"
+        ],
+        "summary": "Create an admin user",
+        "operationId": "create_user_api_v1_admin_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "patch": {
+        "tags": [
+          "admin:users"
+        ],
+        "summary": "Activate/deactivate a user or change their role",
+        "operationId": "update_user_api_v1_admin_users__user_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invitations": {
+      "get": {
+        "tags": [
+          "admin:invitations"
+        ],
+        "summary": "List invitations and join requests",
+        "operationId": "list_invitations_api_v1_admin_invitations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Invitations Api V1 Admin Invitations Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin:invitations"
+        ],
+        "summary": "Invite someone to the admin panel",
+        "operationId": "create_invitation_api_v1_admin_invitations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/invitations/{invitation_id}/approve": {
+      "post": {
+        "tags": [
+          "admin:invitations"
+        ],
+        "summary": "Approve a self-serve join request (issues the acceptance token)",
+        "operationId": "approve_invitation_api_v1_admin_invitations__invitation_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invitations/{invitation_id}": {
+      "delete": {
+        "tags": [
+          "admin:invitations"
+        ],
+        "summary": "Revoke a pending or requested invitation",
+        "operationId": "revoke_invitation_api_v1_admin_invitations__invitation_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/health": {
@@ -1301,6 +1732,237 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InvitationAccept": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Password",
+            "description": "Chosen password, at least 8 characters.",
+            "examples": [
+              "s3cret-pass"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "InvitationAccept",
+        "description": "Public: invitee sets their password and the account is created."
+      },
+      "InvitationCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Who to invite.",
+            "examples": [
+              "newbaker@thebakersinn.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role they'll get on acceptance.",
+            "default": "employee",
+            "examples": [
+              "employee"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "InvitationCreate",
+        "description": "Owner invites a specific person."
+      },
+      "InvitationPublicInfo": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email the invitation is for.",
+            "examples": [
+              "x@example.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role that will be granted.",
+            "examples": [
+              "employee"
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Token expiry (UTC)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "role"
+        ],
+        "title": "InvitationPublicInfo",
+        "description": "What GET /auth/invitations/{token} returns \u2014 enough to prefill the\naccept form, nothing sensitive."
+      },
+      "InvitationRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Invitation ID.",
+            "examples": [
+              5
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Invitee email.",
+            "examples": [
+              "newbaker@thebakersinn.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role granted on acceptance.",
+            "examples": [
+              "employee"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus",
+            "description": "requested | pending | accepted | revoked.",
+            "examples": [
+              "pending"
+            ]
+          },
+          "token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token",
+            "description": "Acceptance token. Null while status is 'requested'.",
+            "examples": [
+              "k3y-Vd9..."
+            ]
+          },
+          "invited_by_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By Id",
+            "description": "ID of the owner who sent it; null for self-requests.",
+            "examples": [
+              1
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "When the token stops working (UTC)."
+          },
+          "accepted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted At",
+            "description": "When the account was created (UTC)."
+          },
+          "is_expired": {
+            "type": "boolean",
+            "title": "Is Expired",
+            "description": "True if pending but past expires_at.",
+            "examples": [
+              false
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "is_expired",
+          "created_at"
+        ],
+        "title": "InvitationRead",
+        "description": "Admin-facing view. Includes the raw token so an owner can share the link\n(there's no email delivery configured \u2014 see CLAUDE.md \u00a76)."
+      },
+      "InvitationStatus": {
+        "type": "string",
+        "enum": [
+          "requested",
+          "pending",
+          "accepted",
+          "revoked"
+        ],
+        "title": "InvitationStatus"
+      },
+      "JoinRequestCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Email of the person requesting access.",
+            "examples": [
+              "hopeful@example.com"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "JoinRequestCreate",
+        "description": "Public: someone asks to be added to the admin panel."
       },
       "LoginRequest": {
         "properties": {
@@ -2152,6 +2814,14 @@
         ],
         "title": "RefreshRequest"
       },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "owner",
+          "employee"
+        ],
+        "title": "Role"
+      },
       "TokenPair": {
         "properties": {
           "access_token": {
@@ -2197,6 +2867,136 @@
           "url"
         ],
         "title": "UploadResponse"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Login email. Must be unique.",
+            "examples": [
+              "baker@thebakersinn.com"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Password",
+            "description": "Initial password, at least 8 characters.",
+            "examples": [
+              "s3cret-pass"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role for the new account. Defaults to 'employee'.",
+            "default": "employee",
+            "examples": [
+              "employee"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "User ID.",
+            "examples": [
+              2
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Login email.",
+            "examples": [
+              "baker@thebakersinn.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "'owner' or 'employee'.",
+            "examples": [
+              "employee"
+            ]
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Inactive users cannot log in and their tokens stop working.",
+            "examples": [
+              true
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp (UTC)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UserRead"
+      },
+      "UserUpdate": {
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "description": "Set false to disable the account.",
+            "examples": [
+              false
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New role.",
+            "examples": [
+              "owner"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate",
+        "description": "PATCH \u2014 activate/deactivate and/or change role. Both optional."
       },
       "ValidationError": {
         "properties": {
