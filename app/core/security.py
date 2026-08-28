@@ -9,10 +9,15 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt
 
 from app.core.config import settings
 
+# JWT: PyJWT, not python-jose. python-jose is effectively unmaintained and
+# drags in `ecdsa` (unpatched Minerva timing-attack advisory, CVE-2024-23342)
+# plus `rsa`/`pyasn1`; PyJWT is actively maintained, fully typed, and has no
+# such transitive baggage.
+#
 # Direct bcrypt rather than passlib: passlib's CryptContext is unmaintained
 # and breaks against bcrypt>=4.0 (it probes bcrypt.__about__, which no
 # longer exists).
@@ -70,7 +75,7 @@ def decode_token(token: str, expected_type: Literal["access", "refresh"]) -> str
     """Returns the subject (email) if the token is valid and of the expected type."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise InvalidTokenError(str(exc)) from exc
 
     if payload.get("type") != expected_type:
