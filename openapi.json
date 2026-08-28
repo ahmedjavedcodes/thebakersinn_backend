@@ -547,6 +547,32 @@
         }
       }
     },
+    "/api/v1/admin/me": {
+      "get": {
+        "tags": [
+          "admin:me"
+        ],
+        "summary": "The currently authenticated admin user",
+        "operationId": "read_me_api_v1_admin_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/categories": {
       "post": {
         "tags": [

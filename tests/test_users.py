@@ -10,6 +10,28 @@ from httpx import AsyncClient
 
 from tests.conftest import EMPLOYEE_EMAIL
 
+# --- GET /admin/me (any authenticated admin) --------------------------------
+
+
+async def test_me_returns_owner(client: AsyncClient, owner_headers: dict[str, str]) -> None:
+    resp = await client.get("/api/v1/admin/me", headers=owner_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["email"] == "owner@thebakersinn.com"
+    assert body["role"] == "owner"
+    assert body["is_active"] is True
+    assert "hashed_password" not in body
+
+
+async def test_me_returns_employee(client: AsyncClient, employee_headers: dict[str, str]) -> None:
+    resp = await client.get("/api/v1/admin/me", headers=employee_headers)
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "employee"
+
+
+async def test_me_requires_a_token(client: AsyncClient) -> None:
+    assert (await client.get("/api/v1/admin/me")).status_code == 401
+
 
 async def _make_category(client: AsyncClient, headers: dict[str, str]) -> int:
     resp = await client.post(

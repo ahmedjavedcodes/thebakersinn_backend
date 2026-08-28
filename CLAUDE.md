@@ -180,6 +180,7 @@ Public routes are unauthenticated and return only `is_active` / `is_available` r
 | PATCH | `/api/v1/admin/products/{id}/availability` | admin | Fast in/out-of-stock toggle |
 | DELETE | `/api/v1/admin/products/{id}` | **owner** | 403 for employees; hard delete |
 | POST | `/api/v1/admin/uploads/image` | admin | `multipart/form-data`, returns `{url}` |
+| GET | `/api/v1/admin/me` | admin | The current user (`id, email, role, is_active`); admin panel reads this on load |
 | GET | `/api/v1/admin/users` | **owner** | List users with their role + `is_active` |
 | POST | `/api/v1/admin/users` | **owner** | Create a user (`email`, `password`, `role` default `employee`) |
 | PATCH | `/api/v1/admin/users/{id}` | **owner** | Activate/deactivate, change role; 409 on last-owner / self-lockout |

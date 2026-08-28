@@ -17,6 +17,7 @@ from app.db.session import AsyncSessionLocal
 from app.routers import auth
 from app.routers.admin import categories as admin_categories
 from app.routers.admin import invitations as admin_invitations
+from app.routers.admin import me as admin_me
 from app.routers.admin import products as admin_products
 from app.routers.admin import uploads as admin_uploads
 from app.routers.admin import users as admin_users
@@ -55,6 +56,7 @@ api_router.include_router(public_products.router)
 api_router.include_router(auth.router)
 
 admin_router = APIRouter(prefix="/admin", dependencies=[Depends(get_current_admin)])
+admin_router.include_router(admin_me.router)
 admin_router.include_router(admin_categories.router)
 admin_router.include_router(admin_products.router)
 admin_router.include_router(admin_uploads.router)
