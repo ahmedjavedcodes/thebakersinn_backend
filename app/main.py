@@ -16,8 +16,10 @@ from app.crud import user as user_crud
 from app.db.session import AsyncSessionLocal
 from app.routers import auth
 from app.routers.admin import categories as admin_categories
+from app.routers.admin import invitations as admin_invitations
 from app.routers.admin import products as admin_products
 from app.routers.admin import uploads as admin_uploads
+from app.routers.admin import users as admin_users
 from app.routers.public import categories as public_categories
 from app.routers.public import products as public_products
 
@@ -56,6 +58,8 @@ admin_router = APIRouter(prefix="/admin", dependencies=[Depends(get_current_admi
 admin_router.include_router(admin_categories.router)
 admin_router.include_router(admin_products.router)
 admin_router.include_router(admin_uploads.router)
+admin_router.include_router(admin_users.router)
+admin_router.include_router(admin_invitations.router)
 api_router.include_router(admin_router)
 
 app.include_router(api_router)

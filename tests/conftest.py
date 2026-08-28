@@ -16,6 +16,7 @@ from app.crud import user as user_crud
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.user import Role
 
 TEST_DATABASE_URL = settings.DATABASE_URL.rsplit("/", 1)[0] + "/bakers_inn_test"
 
@@ -54,14 +55,31 @@ async def client() -> AsyncGenerator[AsyncClient]:
 
 ADMIN_EMAIL = "owner@thebakersinn.com"
 ADMIN_PASSWORD = "test-password-123"
+EMPLOYEE_EMAIL = "baker@thebakersinn.com"
+EMPLOYEE_PASSWORD = "employee-password-123"
 
 
 @pytest.fixture
 async def admin_token(db_session: AsyncSession) -> str:
-    await user_crud.seed_admin(db_session, email=ADMIN_EMAIL, password=ADMIN_PASSWORD)
+    """A logged-in OWNER — the default for existing CRUD tests."""
+    await user_crud.seed_admin(db_session, email=ADMIN_EMAIL, password=ADMIN_PASSWORD, role=Role.OWNER)
     return create_access_token(ADMIN_EMAIL)
 
 
 @pytest.fixture
 def auth_headers(admin_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {admin_token}"}
+
+
+# Owner-role aliases, for tests that contrast the two roles explicitly.
+@pytest.fixture
+async def owner_headers(auth_headers: dict[str, str]) -> dict[str, str]:
+    return auth_headers
+
+
+@pytest.fixture
+async def employee_headers(db_session: AsyncSession) -> dict[str, str]:
+    await user_crud.create_user(
+        db_session, email=EMPLOYEE_EMAIL, password=EMPLOYEE_PASSWORD, role=Role.EMPLOYEE
+    )
+    return {"Authorization": f"Bearer {create_access_token(EMPLOYEE_EMAIL)}"}

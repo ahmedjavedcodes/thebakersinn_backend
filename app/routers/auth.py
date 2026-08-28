@@ -16,9 +16,11 @@ from app.core.security import (
     decode_token,
     verify_password,
 )
+from app.crud import invitation as invitation_crud
 from app.crud import user as user_crud
 from app.db.session import get_db
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenPair
+from app.schemas.invitation import InvitationAccept, InvitationPublicInfo, JoinRequestCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,4 +52,61 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)) -
     return TokenPair(
         access_token=create_access_token(admin.email),
         refresh_token=create_refresh_token(admin.email),
+    )
+
+
+@router.post(
+    "/join-requests",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Request access to the admin panel (an owner must approve)",
+)
+async def request_to_join(payload: JoinRequestCreate, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    if await user_crud.get_by_email(db, payload.email) is None and (
+        await invitation_crud.get_live_for_email(db, payload.email) is None
+    ):
+        await invitation_crud.create_request(db, email=payload.email)
+    # Always report the same result — don't leak whether the email is known.
+    return {"detail": "If the address is eligible, an owner will review the request."}
+
+
+@router.get(
+    "/invitations/{token}",
+    response_model=InvitationPublicInfo,
+    summary="Look up a pending invitation by its token",
+)
+async def get_invitation(token: str, db: AsyncSession = Depends(get_db)) -> InvitationPublicInfo:
+    invitation = await invitation_crud.get_by_token(db, token)
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown invitation token")
+    if not invitation.is_acceptable:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="This invitation is no longer valid")
+    return InvitationPublicInfo(
+        email=invitation.email, role=invitation.role, expires_at=invitation.expires_at
+    )
+
+
+@router.post(
+    "/invitations/{token}/accept",
+    response_model=TokenPair,
+    summary="Accept an invitation: set a password, get logged in",
+)
+async def accept_invitation(
+    token: str, payload: InvitationAccept, db: AsyncSession = Depends(get_db)
+) -> TokenPair:
+    invitation = await invitation_crud.get_by_token(db, token)
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown invitation token")
+    if not invitation.is_acceptable:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="This invitation is no longer valid")
+    if await user_crud.get_by_email(db, invitation.email) is not None:
+        await invitation_crud.mark_accepted(db, invitation)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="That email already has an account")
+
+    user = await user_crud.create_user(
+        db, email=invitation.email, password=payload.password, role=invitation.role
+    )
+    await invitation_crud.mark_accepted(db, invitation)
+    return TokenPair(
+        access_token=create_access_token(user.email),
+        refresh_token=create_refresh_token(user.email),
     )

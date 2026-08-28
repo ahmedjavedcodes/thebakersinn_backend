@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import require_owner
 from app.crud import category as category_crud
 from app.crud import product as product_crud
 from app.db.session import get_db
@@ -66,7 +67,12 @@ async def update_product(
     return ProductDetail.model_validate(product)
 
 
-@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Hard delete a product")
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Hard delete a product (owner only)",
+    dependencies=[Depends(require_owner)],
+)
 async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)) -> None:
     product = await product_crud.get_by_id(db, product_id)
     if product is None:
