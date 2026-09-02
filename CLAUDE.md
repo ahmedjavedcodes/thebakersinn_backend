@@ -68,12 +68,34 @@ Routers contain no business logic and no queries — they validate, call `crud`/
 
 ## 5. Data model
 
-Three tables. `product_variants` is **optional for v1** — see Open Decision D1.
+Catalog is three tables (`product_variants` **optional for v1** — see Open Decision D1). Auth adds two more: `admin_users` (now with a `role` column) and `employee_invitations` — see §6.
 
 ```mermaid
 erDiagram
     CATEGORIES ||--o{ PRODUCTS : contains
     PRODUCTS ||--o{ PRODUCT_VARIANTS : "priced by size"
+    ADMIN_USERS ||--o{ EMPLOYEE_INVITATIONS : "invited_by"
+    ADMIN_USERS {
+        int id PK
+        string email UK
+        string hashed_password
+        bool is_active
+        enum role "owner | employee"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    EMPLOYEE_INVITATIONS {
+        int id PK
+        string email
+        enum role "owner | employee"
+        enum status "requested | pending | accepted | revoked"
+        string token UK "null until pending"
+        int invited_by_id FK "null for self-requests"
+        timestamptz expires_at
+        timestamptz accepted_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
     CATEGORIES {
         int id PK
         string name UK
@@ -129,6 +151,10 @@ If image metadata requirements grow, migrating `jsonb` → `product_images` is m
 
 Soft-delete via `is_active` is the normal path for both categories and products; hard delete is an escape hatch. Prefer deactivating.
 
+**admin_users** — `email` unique. `role` is `owner` | `employee` (§6). Stored as a non-native Enum (`VARCHAR(20)` + CHECK), `server_default 'employee'`, so adding a role later is a no-op migration. Deactivating (`is_active = false`) both blocks login and makes any outstanding access token fail on the next request, since `get_current_admin` re-checks the row.
+
+**employee_invitations** — backs both onboarding paths. `email` is **not** unique (an address can accumulate revoked/expired rows); the CRUD layer allows at most one live row (`requested` or `pending`) per email. `token` is unique but nullable — it's `NULL` until an owner approves a self-serve request. `invited_by_id → admin_users.id ON DELETE SET NULL` (keep the invitation history even if the inviting owner is later removed). `expires_at` is enforced in Python (`is_expired` / `is_acceptable` properties), not by the DB.
+
 ## 6. API endpoints
 
 Public routes are unauthenticated and return only `is_active` / `is_available` records.
@@ -141,19 +167,43 @@ Public routes are unauthenticated and return only `is_active` / `is_available` r
 | GET | `/api/v1/products` | — | Paginated; filters `category_slug`, `search`, `is_featured`, `min_price`, `max_price`; `sort` = `display_order`\|`price`\|`name`\|`created_at` |
 | GET | `/api/v1/products/{slug}` | — | One product with variants and images |
 | POST | `/api/v1/auth/login` | — | Returns access + refresh tokens |
+| POST | `/api/v1/auth/refresh` | — | Exchange a refresh token for a new pair |
+| POST | `/api/v1/auth/join-requests` | — | Self-serve "request to join"; always 202, an owner must approve |
+| GET | `/api/v1/auth/invitations/{token}` | — | Look up a pending invitation (email + role); 410 if expired/revoked |
+| POST | `/api/v1/auth/invitations/{token}/accept` | — | Set a password → account created, returns a token pair |
 | POST | `/api/v1/admin/categories` | admin | Create — `icon_url` required |
 | PATCH | `/api/v1/admin/categories/{id}` | admin | Partial update |
-| DELETE | `/api/v1/admin/categories/{id}` | owner | 409 if products still attached |
+| DELETE | `/api/v1/admin/categories/{id}` | **owner** | 403 for employees; 409 if products still attached |
 | PATCH | `/api/v1/admin/categories/reorder` | admin | Bulk `[{id, display_order}]` |
 | POST | `/api/v1/admin/products` | admin | Create under a category |
 | PATCH | `/api/v1/admin/products/{id}` | admin | Partial update, incl. images array |
 | PATCH | `/api/v1/admin/products/{id}/availability` | admin | Fast in/out-of-stock toggle |
-| DELETE | `/api/v1/admin/products/{id}` | owner | Hard delete |
+| DELETE | `/api/v1/admin/products/{id}` | **owner** | 403 for employees; hard delete |
 | POST | `/api/v1/admin/uploads/image` | admin | `multipart/form-data`, returns `{url}` |
+| GET | `/api/v1/admin/me` | admin | The current user (`id, email, role, is_active`); admin panel reads this on load |
+| GET | `/api/v1/admin/users` | **owner** | List users with their role + `is_active` |
+| POST | `/api/v1/admin/users` | **owner** | Create a user (`email`, `password`, `role` default `employee`) |
+| PATCH | `/api/v1/admin/users/{id}` | **owner** | Activate/deactivate, change role; 409 on last-owner / self-lockout |
+| GET | `/api/v1/admin/invitations` | **owner** | List invitations and pending join requests |
+| POST | `/api/v1/admin/invitations` | **owner** | Invite a named person → `pending` + token |
+| POST | `/api/v1/admin/invitations/{id}/approve` | **owner** | Approve a `requested` join request → mints the token |
+| DELETE | `/api/v1/admin/invitations/{id}` | **owner** | Revoke a pending/requested invitation |
 
-**Conventions.** No response envelope — return the resource or a list directly; FastAPI's OpenAPI output is cleaner without a wrapper, and the frontend dev reads types straight from it. List endpoints return `{items, total, page, size, pages}`. Errors are `{"detail": "..."}` for simple cases and FastAPI's default 422 shape for validation. Status codes: 200, 201 create, 204 delete, 401 unauthenticated, 403 wrong role, 404, 409 conflict (duplicate slug, category not empty), 422 validation.
+In the table, **admin** = any authenticated account (owner or employee); **owner** = the `require_owner` guard, employees get 403.
 
-**Auth (assumed default — confirm, Open Decision D3):** JWT bearer, `owner` and `employee` roles. Employees do everything except delete. No public signup — the owner account is seeded, employees are created by the owner.
+**Conventions.** No response envelope — return the resource or a list directly; FastAPI's OpenAPI output is cleaner without a wrapper, and the frontend dev reads types straight from it. List endpoints return `{items, total, page, size, pages}`. Errors are `{"detail": "..."}` for simple cases and FastAPI's default 422 shape for validation. Status codes: 200, 201 create, 204 delete, 401 unauthenticated, 403 wrong role, 404, 409 conflict (duplicate slug, category not empty), 410 gone (dead invitation token), 422 validation.
+
+**Auth (D3 — resolved in Week 3).** JWT bearer with two roles on `admin_users.role`:
+
+- **owner** — full access, including `DELETE` on categories/products and all of `/admin/users` + `/admin/invitations`.
+- **employee** — create and edit categories/products and upload images; **cannot** delete and **cannot** see or manage users/invitations.
+
+No public signup. The bootstrap account (`ADMIN_EMAIL` / `ADMIN_PASSWORD`) is seeded on startup and always forced to `owner`. Further accounts arrive two ways, both landing in one `employee_invitations` table:
+
+1. **Owner invites** — `POST /admin/invitations` creates a `pending` row with a random `token`. No email is sent (none configured); the owner shares `…/auth/invitations/{token}/accept`. The invitee sets a password and is logged straight in.
+2. **Self-serve request** — `POST /auth/join-requests` creates a `requested` row (no token). An owner `…/approve`s it, which mints the token; from there it's identical to path 1.
+
+Invitation tokens expire after 7 days (`app/crud/invitation.py::TOKEN_TTL`). Owners cannot demote/deactivate the last active owner or their own account (409).
 
 ## 7. Conventions
 
@@ -185,6 +235,7 @@ docker compose up -d db                 # local Postgres
 ```
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/bakers_inn
 SECRET_KEY=
+PASSWORD_PEPPER=                     # secret mixed into every password before bcrypt; never stored in the DB
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
@@ -198,7 +249,7 @@ ENVIRONMENT=development
 
 - **D1 — Size variants in v1?** Research shows the same cake priced at multiple weights. Ship `product_variants` now, or ship `base_price` only and add variants later? Shipping later means a breaking change to the product response the frontend has already built against. *(Recommendation: include the table now, allow zero variants.)*
 - **D2 — Where do images live?** Local `static/uploads` is simplest but ties images to one server and complicates deploys. Cloudinary gives free transforms and CDN delivery, which matters for an image-heavy bakery menu on Pakistani mobile connections. Which?
-- **D3 — Auth model.** Is JWT with `owner`/`employee` right, or is a single shared admin login enough for a two-branch bakery?
+- **D3 — Auth model. RESOLVED (Week 3).** JWT bearer with `owner` / `employee` roles on `admin_users.role`; owner-only for deletes and user/invitation management. Onboarding via an `employee_invitations` table (owner invites + self-serve requests). See §6.
 - **D4 — Which categories actually exist?** Only "cakes" is confirmed. Get the real category list from the owner or the Instagram highlights before seeding anything.
 - **D5 — Custom cake orders.** Are these just products flagged `is_custom_order`, or do they need a lead-time field, a deposit amount, and an enquiry/order endpoint? This is the largest potential scope change.
 - **D6 — Branches.** Two locations exist. Is stock/availability per-branch, or is one menu shared? Per-branch availability would add a `branches` table and a join table.

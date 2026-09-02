@@ -145,6 +145,33 @@ async def test_filter_by_category_slug_and_price_range(
     assert body["items"][0]["name"] == "Mid Cake"
 
 
+async def test_update_product_returns_full_detail(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    category_id = await _create_category(client, auth_headers)
+    created = await client.post(
+        "/api/v1/admin/products",
+        json={
+            "category_id": category_id,
+            "name": "Lemon Cake",
+            "base_price": "1800.00",
+            "variants": [{"label": "1 lb", "price": "1200.00", "display_order": 0}],
+        },
+        headers=auth_headers,
+    )
+    product_id = created.json()["id"]
+
+    resp = await client.patch(
+        f"/api/v1/admin/products/{product_id}",
+        json={"description": "zesty", "base_price": "1900.00"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["description"] == "zesty"
+    assert body["base_price"] == "1900.00"
+    assert body["updated_at"] and body["created_at"]
+    assert len(body["variants"]) == 1
+
+
 async def test_delete_product_hard_deletes(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     category_id = await _create_category(client, auth_headers)
     created = await client.post(

@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
 
+    # Pepper: a secret mixed into every password *before* bcrypt. Unlike the
+    # per-password salt (bcrypt generates one and stores it inside the hash),
+    # the pepper lives only here / in a secrets manager and never touches the
+    # database, so a leaked DB dump can't be brute-forced offline without it.
+    # Rotating this value invalidates every existing password hash.
+    PASSWORD_PEPPER: str
+
     # Single shared admin account, seeded on startup if it doesn't exist yet.
     ADMIN_EMAIL: str
     ADMIN_PASSWORD: str

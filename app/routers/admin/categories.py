@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import require_owner
 from app.crud import category as category_crud
 from app.db.session import get_db
 from app.schemas.category import (
@@ -67,7 +68,12 @@ async def update_category(
     return CategoryRead.model_validate(category)
 
 
-@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a category")
+@router.delete(
+    "/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a category (owner only)",
+    dependencies=[Depends(require_owner)],
+)
 async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)) -> None:
     category = await category_crud.get_by_id(db, category_id)
     if category is None:

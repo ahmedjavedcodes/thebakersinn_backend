@@ -188,6 +188,10 @@ async def update(db: AsyncSession, product: Product, data: ProductUpdate) -> Pro
             )
 
     await db.commit()
+    # Full refresh: `updated_at` is expired by its onupdate= after the UPDATE and
+    # would otherwise trigger lazy IO during response serialisation. Then reload
+    # the variants collection too.
+    await db.refresh(product)
     await db.refresh(product, attribute_names=["variants"])
     return product
 
