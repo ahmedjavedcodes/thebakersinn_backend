@@ -45,7 +45,51 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(_pepper(plain_password), hashed_password.encode("utf-8"))
+    """Verify password, checking both peppered (new) and unpeppered (old) schemes.
+
+    Returns True if the password matches, False otherwise.
+    Does NOT indicate if rehashing is needed — use verify_and_check_rehash for that.
+    """
+    try:
+        # Try peppered scheme (current)
+        if bcrypt.checkpw(_pepper(plain_password), hashed_password.encode("utf-8")):
+            return True
+    except (ValueError, TypeError):
+        pass
+
+    # Fallback: try unpeppered scheme (old passwords before pepper was added)
+    try:
+        if bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8")):
+            return True
+    except (ValueError, TypeError):
+        pass
+
+    return False
+
+
+def verify_and_check_rehash(plain_password: str, hashed_password: str) -> tuple[bool, bool]:
+    """Verify password and indicate if it needs rehashing to the new peppered scheme.
+
+    Returns: (verified: bool, needs_rehash: bool)
+    - (True, False): password is correct and already using new scheme
+    - (True, True): password is correct but using old unpeppered scheme — rehash needed
+    - (False, False): password is incorrect
+    """
+    try:
+        # Try peppered scheme (current)
+        if bcrypt.checkpw(_pepper(plain_password), hashed_password.encode("utf-8")):
+            return True, False
+    except (ValueError, TypeError):
+        pass
+
+    # Fallback: try unpeppered scheme (old passwords before pepper was added)
+    try:
+        if bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8")):
+            return True, True  # Old scheme — needs rehash
+    except (ValueError, TypeError):
+        pass
+
+    return False, False
 
 
 def _create_token(subject: str, expires_delta: timedelta, token_type: Literal["access", "refresh"]) -> str:

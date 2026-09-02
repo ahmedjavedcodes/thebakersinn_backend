@@ -14,7 +14,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    verify_password,
+    hash_password,
+    verify_and_check_rehash,
 )
 from app.crud import invitation as invitation_crud
 from app.crud import user as user_crud
@@ -28,8 +29,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=TokenPair, summary="Log in with the admin email and password")
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
     admin = await user_crud.get_by_email(db, payload.email)
-    if admin is None or not admin.is_active or not verify_password(payload.password, admin.hashed_password):
+    if admin is None or not admin.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    verified, needs_rehash = verify_and_check_rehash(payload.password, admin.hashed_password)
+    if not verified:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    # Migrate old password hashes to new peppered scheme on login
+    if needs_rehash:
+        admin.hashed_password = hash_password(payload.password)
+        await db.flush()
 
     return TokenPair(
         access_token=create_access_token(admin.email),
