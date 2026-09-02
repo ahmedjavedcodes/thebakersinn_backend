@@ -99,7 +99,6 @@ async def accept_invitation(
     if not invitation.is_acceptable:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="This invitation is no longer valid")
     if await user_crud.get_by_email(db, invitation.email) is not None:
-        await invitation_crud.mark_accepted(db, invitation)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="That email already has an account")
 
     user = await user_crud.create_user(
